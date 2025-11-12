@@ -1,0 +1,12 @@
+Generic single-database configuration with Alembic.
+
+This directory contains database migration scripts for the Data Room API.
+
+To generate a new migration:
+alembic revision --autogenerate -m "Description of changes"
+
+To upgrade to the latest version:
+alembic upgrade head
+
+To downgrade one version:
+alembic downgrade -1

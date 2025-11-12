@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.ipynb_checkpoints
+profile_default/
+ipython_config.py
+
+# Virtual Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Git
+.git
+.gitignore
+
+# Data
+*.db
+*.sqlite3
+uploads/*
+!uploads/.gitkeep
+
+# Logs
+*.log
+
+# Cache
+.mypy_cache/
+.ruff_cache/
+
+# Project specific
+Dockerfile
+.dockerignore
+docker-compose.yml
+Makefile
+
+# Documentation
+README.md
+CHANGELOG.md
+docs/
+
+# Other
+notes/
+**/__pycache__/
+**/.*.swp
+**/.DS_Store

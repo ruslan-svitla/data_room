@@ -122,7 +122,7 @@ The Data Room application provides a secure platform for storing, managing, and 
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/data_room.git
+   git clone git@github.com:ruslan-svitla/data_room.git
    cd data_room
    ```
 

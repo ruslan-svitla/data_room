@@ -42,13 +42,21 @@ export const downloadDocument = async (id: string, fileName: string): Promise<vo
       responseType: 'blob'
     });
 
-    // Create URL for the blob
-    const url = window.URL.createObjectURL(new Blob([response.data]));
+    // Get content type from the response or use a generic one
+    const contentType = response.headers['content-type'] || 'application/octet-stream';
+
+    // Create URL for the blob - explicitly specify content type to force download behavior
+    const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/octet-stream' }));
 
     // Create temporary link element to trigger download
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', fileName);
+    link.setAttribute('download', fileName); // The download attribute forces download behavior
+
+    // For extra certainty, add these attributes (may not be needed but doesn't hurt)
+    link.setAttribute('type', 'application/octet-stream');
+    link.style.display = 'none';
+
     document.body.appendChild(link);
     link.click();
 

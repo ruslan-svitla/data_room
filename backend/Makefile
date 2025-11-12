@@ -18,28 +18,27 @@ GREEN = \033[32m
 YELLOW = \033[33m
 RESET = \033[0m
 
-.PHONY: help setup install run dev test lint format clean docker-build docker-run docker-stop init-db migrate migrate-up migrate-down uvloop run-with-init init-data-only
+.PHONY: help setup install install-dev run dev test lint format clean docker-build docker-run docker-stop init-db migrate migrate-up migrate-down uvloop run-with-init init-dev-env activate-venv
 
 help:
 	@echo "$(BOLD)Available commands:$(RESET)"
 	@echo "$(GREEN)setup$(RESET) - Create virtual environment using UV with Python $(PYTHON_VERSION) and install dependencies"
 	@echo "$(GREEN)install$(RESET) - Install dependencies using UV"
+	@echo "$(GREEN)install-dev$(RESET) - Install development dependencies using UV"
+	@echo "$(GREEN)activate-venv$(RESET) - Activate the virtual environment (for shell scripts)"
+	@echo "$(GREEN)init-dev-env$(RESET) - Complete development environment setup (setup, install-dev, database initialization)"
 	@echo "$(GREEN)run$(RESET) - Run the application using UV"
 	@echo "$(GREEN)dev$(RESET) - Run the application in development mode with auto-reload"
 	@echo "$(GREEN)test$(RESET) - Run tests"
 	@echo "$(GREEN)lint$(RESET) - Run linters (ruff, mypy)"
 	@echo "$(GREEN)format$(RESET) - Format code using ruff"
 	@echo "$(GREEN)clean$(RESET) - Clean cache files"
-	@echo "$(GREEN)docker-build$(RESET) - Build Docker image"
-	@echo "$(GREEN)docker-run$(RESET) - Run Docker container"
-	@echo "$(GREEN)docker-stop$(RESET) - Stop Docker container"
 	@echo "$(GREEN)init-db$(RESET) - Initialize database with sample data"
 	@echo "$(GREEN)migrate m=\"message\"$(RESET) - Generate new migration"
 	@echo "$(GREEN)migrate-up$(RESET) - Apply migrations"
 	@echo "$(GREEN)migrate-down$(RESET) - Rollback last migration"
 	@echo "$(GREEN)uvloop$(RESET) - Install uvloop for improved performance"
 	@echo "$(GREEN)run-with-init$(RESET) - Initialize database and run app in development mode"
-	@echo "$(GREEN)init-data-only$(RESET) - Initialize database with data without starting the app"
 
 uvloop:
 	@echo "$(YELLOW)Installing uvloop for improved performance...$(RESET)"
@@ -48,13 +47,19 @@ uvloop:
 setup:
 	@echo "$(YELLOW)Setting up virtual environment with Python $(PYTHON_VERSION) using UV...$(RESET)"
 	uv venv -p $(PYTHON_VERSION) $(VENV_DIR)
-	$(UV) pip install -r requirements.txt
 	@echo "$(GREEN)Virtual environment created and dependencies installed.$(RESET)"
 
 install:
+	@test -d $(VENV_DIR) || (echo "$(YELLOW)Virtual environment not found. Run 'make setup' first.$(RESET)" && exit 1)
 	@echo "$(YELLOW)Installing dependencies using UV...$(RESET)"
 	$(UV) sync
 	@echo "$(GREEN)Dependencies installed.$(RESET)"
+
+install-dev:
+	@test -d $(VENV_DIR) || (echo "$(YELLOW)Virtual environment not found. Run 'make setup' first.$(RESET)" && exit 1)
+	@echo "$(YELLOW)Installing development dependencies using UV...$(RESET)"
+	$(UV) pip install -e ".[dev]"
+	@echo "$(GREEN)Development dependencies installed.$(RESET)"
 
 run:
 	@echo "$(YELLOW)Running application...$(RESET)"
@@ -90,19 +95,6 @@ clean:
 	find . -type d -name ".mypy_cache" -exec rm -rf {} +
 	find . -type d -name ".coverage" -exec rm -rf {} +
 
-docker-build:
-	@echo "$(YELLOW)Building Docker image...$(RESET)"
-	docker build -t $(DOCKER_IMAGE) .
-
-docker-run:
-	@echo "$(YELLOW)Running Docker container...$(RESET)"
-	docker run -d --name $(DOCKER_CONTAINER) -p $(DOCKER_PORT):$(DOCKER_PORT) $(DOCKER_IMAGE)
-
-docker-stop:
-	@echo "$(YELLOW)Stopping Docker container...$(RESET)"
-	docker stop $(DOCKER_CONTAINER) || true
-	docker rm $(DOCKER_CONTAINER) || true
-
 init-db:
 	@echo "$(YELLOW)Initializing database...$(RESET)"
 	$(PYTHON) -m app.db.init_db
@@ -122,3 +114,19 @@ migrate-up:
 migrate-down:
 	@echo "$(YELLOW)Rolling back last migration...$(RESET)"
 	alembic downgrade -1
+
+activate-venv:
+	@echo "$(YELLOW)Activating virtual environment...$(RESET)"
+	@test -d $(VENV_DIR) || (echo "$(YELLOW)Virtual environment not found. Run 'make setup' first.$(RESET)" && exit 1)
+	@echo 'Run: source $(VENV_DIR)/bin/activate'
+
+init-dev-env:
+	@echo "$(YELLOW)Setting up complete development environment...$(RESET)"
+	$(MAKE) setup
+	$(MAKE) activate-venv
+	$(MAKE) install-dev
+	$(MAKE) migrate-up
+	$(MAKE) init-db
+	$(MAKE) init-db-data
+	@echo "$(GREEN)Development environment fully initialized!$(RESET)"
+	@echo "$(YELLOW)To start working, activate the virtual environment with: $(BOLD)source $(VENV_DIR)/bin/activate$(RESET)"

@@ -250,8 +250,15 @@ async def download_document(
             status_code=status.HTTP_404_NOT_FOUND, detail="File not found on server"
         )
 
+    # Always use application/octet-stream to force download behavior
+    # and set Content-Disposition header to 'attachment' to force download
     return FileResponse(
-        file_path, media_type="application/octet-stream", filename=document.name
+        file_path, 
+        media_type="application/octet-stream", 
+        filename=document.name,
+        headers={
+            "Content-Disposition": f"attachment; filename={document.name}"
+        }
     )
 
 

@@ -1,9 +1,9 @@
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
+from app.db.dynamodb_session import DynamoDBSession
 from app.models.user import User
 from app.schemas.user import User as UserSchema
 from app.schemas.user import UserUpdate
@@ -25,7 +25,7 @@ async def read_user_me(
 @router.put("/me", response_model=UserSchema)
 async def update_user_me(
     *,
-    db: AsyncSession = Depends(deps.get_db),
+    db: DynamoDBSession = Depends(deps.get_db),
     user_in: UserUpdate,
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
@@ -56,7 +56,7 @@ async def update_user_me(
 
 @router.get("", response_model=list[UserSchema])
 async def read_users(
-    db: AsyncSession = Depends(deps.get_db),
+    db: DynamoDBSession = Depends(deps.get_db),
     skip: int = 0,
     limit: int = 100,
     current_user: User = Depends(deps.get_current_active_superuser),
@@ -72,7 +72,7 @@ async def read_users(
 async def read_user_by_id(
     user_id: str,
     current_user: User = Depends(deps.get_current_active_user),
-    db: AsyncSession = Depends(deps.get_db),
+    db: DynamoDBSession = Depends(deps.get_db),
 ) -> Any:
     """
     Get a specific user by id

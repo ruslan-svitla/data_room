@@ -11,15 +11,14 @@ import {
   Toolbar,
   Typography,
   useMediaQuery,
-  useTheme,
-} from '@mui/material';
+  useTheme} from '@mui/material';
 import {
   Menu as MenuIcon,
-  ChevronLeft as ChevronLeftIcon,
-} from '@mui/icons-material';
+  ChevronLeft as ChevronLeftIcon} from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 import Sidebar from './Sidebar';
 import UserMenu from './UserMenu';
+import ThemeToggle from '../common/ThemeToggle';
 
 const drawerWidth = 260;
 
@@ -43,9 +42,7 @@ export default function Layout() {
           ml: { md: open ? `${drawerWidth}px` : 0 },
           transition: theme.transitions.create(['width', 'margin'], {
             easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.leavingScreen,
-          }),
-        }}
+            duration: theme.transitions.duration.leavingScreen})}}
       >
         <Toolbar>
           <IconButton
@@ -60,6 +57,7 @@ export default function Layout() {
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             Data Room
           </Typography>
+          <ThemeToggle />
           <UserMenu />
         </Toolbar>
       </AppBar>
@@ -72,17 +70,14 @@ export default function Layout() {
           flexShrink: 0,
           '& .MuiDrawer-paper': {
             width: drawerWidth,
-            boxSizing: 'border-box',
-          },
-        }}
+            boxSizing: 'border-box'}}}
       >
         <Toolbar
           sx={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'flex-end',
-            px: [1],
-          }}
+            px: [1]}}
         >
           <Typography variant="h6" sx={{ flexGrow: 1, ml: 2 }}>
             Menu
@@ -103,9 +98,7 @@ export default function Layout() {
           ml: { md: open ? 0 : `-${drawerWidth}px` },
           transition: theme.transitions.create(['margin', 'width'], {
             easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.leavingScreen,
-          }),
-        }}
+            duration: theme.transitions.duration.leavingScreen})}}
       >
         <Toolbar />
         <Outlet />

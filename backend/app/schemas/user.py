@@ -10,6 +10,7 @@ class UserBase(BaseModel):
     username: str | None = None
     is_active: bool | None = True
     full_name: str | None = None
+    auth_provider: str | None = "local"
 
 
 class UserCreate(UserBase):

@@ -1,24 +1,29 @@
-from sqlalchemy import Column, DateTime, ForeignKey, String, Text, func
-from sqlalchemy.orm import relationship
+from datetime import datetime
+from typing import Optional
 
+from app.core.security import generate_uuid
 from app.db.base_class import Base
 
 
 class ExternalIntegration(Base):
     """External integration credentials model"""
 
-    __tablename__ = "external_integrations"
+    def __init__(self, **kwargs):
+        self.id: str = kwargs.get("id", generate_uuid())
+        self.user_id: str = kwargs.get("user_id")
+        self.provider: str = kwargs.get("provider")  # "google_drive", etc.
+        self.access_token: str = kwargs.get("access_token")
+        self.refresh_token: str | None = kwargs.get("refresh_token")
+        self.token_expiry: datetime | None = kwargs.get("token_expiry")
+        self.provider_user_id: str | None = kwargs.get(
+            "provider_user_id"
+        )  # ID in the external system
+        self.provider_email: str | None = kwargs.get(
+            "provider_email"
+        )  # Email in the external system
+        self.created_at: datetime = kwargs.get("created_at", datetime.now())
+        self.updated_at: datetime | None = kwargs.get("updated_at")
 
-    id = Column(String, primary_key=True, index=True)
-    user_id = Column(String, ForeignKey("users.id"), nullable=False)
-    provider = Column(String, nullable=False)  # "google_drive", etc.
-    access_token = Column(Text, nullable=False)
-    refresh_token = Column(Text, nullable=True)
-    token_expiry = Column(DateTime(timezone=True), nullable=True)
-    provider_user_id = Column(String, nullable=True)  # ID in the external system
-    provider_email = Column(String, nullable=True)  # Email in the external system
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-
-    # Relationships
-    user = relationship("User", backref="external_integrations")
+    def update_timestamp(self):
+        """Update the updated_at timestamp"""
+        self.updated_at = datetime.now()

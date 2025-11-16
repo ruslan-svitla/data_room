@@ -1,6 +1,5 @@
 import { Document } from '../types';
 import { apiRequest } from './api';
-import api from './api';
 
 export const getDocuments = async (folderId?: string): Promise<{ documents: Document[] }> => {
   const params: Record<string, string> = {};
@@ -15,7 +14,7 @@ export const getDocuments = async (folderId?: string): Promise<{ documents: Docu
     url: '/documents',
     params,
   });
-  
+
   // Transform the API response to match what the frontend expects
   return { documents: response };
 };
@@ -34,35 +33,32 @@ export const deleteDocument = async (id: string): Promise<void> => {
   });
 };
 
-// Download document - returns a blob directly instead of using apiRequest
+// Download document - fetches download URL and redirects to it
 export const downloadDocument = async (id: string, fileName: string): Promise<void> => {
   try {
-    // Use axios directly to get the blob
-    const response = await api.get(`/documents/${id}/download`, {
-      responseType: 'blob'
+    // Get the download URL from the API
+    const response = await apiRequest<{ download_url: string }>({
+      method: 'GET',
+      url: `/documents/${id}/download`,
     });
 
-    // Get content type from the response or use a generic one
-    const contentType = response.headers['content-type'] || 'application/octet-stream';
+    // Redirect to the download URL
+    if (response.download_url) {
+      // Create a temporary link and click it to trigger download
+      const link = document.createElement('a');
+      link.href = response.download_url;
+      link.target = '_blank';
+      link.setAttribute('download', fileName);
+      link.style.display = 'none';
 
-    // Create URL for the blob - explicitly specify content type to force download behavior
-    const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/octet-stream' }));
+      document.body.appendChild(link);
+      link.click();
 
-    // Create temporary link element to trigger download
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', fileName); // The download attribute forces download behavior
-
-    // For extra certainty, add these attributes (may not be needed but doesn't hurt)
-    link.setAttribute('type', 'application/octet-stream');
-    link.style.display = 'none';
-
-    document.body.appendChild(link);
-    link.click();
-
-    // Clean up
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(link);
+      // Clean up
+      document.body.removeChild(link);
+    } else {
+      throw new Error('No download URL received from server');
+    }
   } catch (error) {
     console.error('Error downloading document:', error);
     throw error;

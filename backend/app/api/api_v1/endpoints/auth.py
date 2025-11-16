@@ -3,13 +3,15 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
 from app.core.config import settings
 from app.core.security import create_access_token
+from app.db.dynamodb_session import DynamoDBSession
+from app.schemas.google_auth import GoogleAuthRequest
 from app.schemas.token import Token
 from app.schemas.user import User, UserCreate
+from app.services.google_auth import google_auth_service
 from app.services.user import user_service
 
 router = APIRouter()
@@ -17,7 +19,7 @@ router = APIRouter()
 
 @router.post("/login", response_model=Token)
 async def login_access_token(
-    db: AsyncSession = Depends(deps.get_db),
+    db: DynamoDBSession = Depends(deps.get_db),
     form_data: OAuth2PasswordRequestForm = Depends(),
 ) -> Any:
     """
@@ -47,7 +49,7 @@ async def login_access_token(
 
 @router.post("/register", response_model=User)
 async def register_user(
-    *, db: AsyncSession = Depends(deps.get_db), user_in: UserCreate
+    *, db: DynamoDBSession = Depends(deps.get_db), user_in: UserCreate
 ) -> Any:
     """
     Register a new user
@@ -68,3 +70,25 @@ async def register_user(
 
     user = await user_service.create(db, obj_in=user_in)
     return user
+
+
+@router.post("/google", response_model=Token)
+async def login_with_google(
+    *, db: DynamoDBSession = Depends(deps.get_db), auth_request: GoogleAuthRequest
+) -> Any:
+    """
+    Authenticate with Google
+    """
+    try:
+        token_data = await google_auth_service.verify_and_process(db, auth_request)
+        return token_data
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Google authentication error: {str(e)}",
+        )

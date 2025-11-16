@@ -1,9 +1,9 @@
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
+from app.db.dynamodb_session import DynamoDBSession
 from app.models.user import User
 from app.schemas.folder import Folder, FolderCreate, FolderUpdate
 from app.services.folder import folder_service
@@ -14,7 +14,7 @@ router = APIRouter()
 @router.post("", response_model=Folder)
 async def create_folder(
     *,
-    db: AsyncSession = Depends(deps.get_db),
+    db: DynamoDBSession = Depends(deps.get_db),
     folder_in: FolderCreate,
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
@@ -46,7 +46,7 @@ async def create_folder(
 
 @router.get("", response_model=list[Folder])
 async def read_folders(
-    db: AsyncSession = Depends(deps.get_db),
+    db: DynamoDBSession = Depends(deps.get_db),
     skip: int = 0,
     limit: int = 100,
     parent_id: str | None = None,
@@ -63,7 +63,7 @@ async def read_folders(
 
 @router.get("/shared", response_model=list[Folder])
 async def read_shared_folders(
-    db: AsyncSession = Depends(deps.get_db),
+    db: DynamoDBSession = Depends(deps.get_db),
     skip: int = 0,
     limit: int = 100,
     current_user: User = Depends(deps.get_current_active_user),
@@ -80,7 +80,7 @@ async def read_shared_folders(
 @router.get("/{id}", response_model=Folder)
 async def read_folder(
     *,
-    db: AsyncSession = Depends(deps.get_db),
+    db: DynamoDBSession = Depends(deps.get_db),
     id: str,
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
@@ -109,7 +109,7 @@ async def read_folder(
 @router.put("/{id}", response_model=Folder)
 async def update_folder(
     *,
-    db: AsyncSession = Depends(deps.get_db),
+    db: DynamoDBSession = Depends(deps.get_db),
     id: str,
     folder_in: FolderUpdate,
     current_user: User = Depends(deps.get_current_active_user),
@@ -158,7 +158,7 @@ async def update_folder(
 @router.delete("/{id}", response_model=Folder)
 async def delete_folder(
     *,
-    db: AsyncSession = Depends(deps.get_db),
+    db: DynamoDBSession = Depends(deps.get_db),
     id: str,
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:

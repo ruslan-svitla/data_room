@@ -1,10 +1,11 @@
 import { createContext, ReactNode, useContext, useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { AuthState, User, LoginCredentials } from '../types';
-import { loginUser, getCurrentUser } from '../services/authService';
+import { AuthState, User, LoginCredentials, GoogleLoginCredentials } from '../types';
+import { loginUser, getCurrentUser, loginWithGoogle } from '../services/authService';
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
+  loginGoogle: (credentials: GoogleLoginCredentials) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -106,6 +107,36 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setIsLoading(false);
     }
   };
+  
+  const loginGoogle = async (credentials: GoogleLoginCredentials) => {
+    setIsLoading(true);
+    console.log('Attempting Google login...');
+  
+    try {
+      const response = await loginWithGoogle(credentials);
+      const { access_token } = response;
+      console.log('Google login successful, got access token');
+      localStorage.setItem('token', access_token);
+  
+      console.log('Fetching current user data...');
+      const user = await getCurrentUser();
+      console.log('User data received:', user);
+  
+      setAuth({
+        isAuthenticated: true,
+        user,
+        token: access_token,
+      });
+  
+      console.log('Google login complete, navigating to dashboard');
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Google login failed:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const logout = () => {
     localStorage.removeItem('token');
@@ -121,6 +152,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     () => ({
       ...auth,
       login,
+      loginGoogle,
       logout,
       isLoading,
     }),

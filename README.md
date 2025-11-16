@@ -182,32 +182,51 @@ The Data Room application provides a secure platform for storing, managing, and 
 
 ### Database Configuration
 
-The application uses SQLAlchemy ORM, which supports multiple database backends. By default, it's configured to use SQLite for development, but for production, you should consider using a more robust database like PostgreSQL.
+The application uses DynamoDB for database operations. You can work with DynamoDB either in AWS or locally for development.
 
-#### Using PostgreSQL
+#### Using DynamoDB Locally
 
-1. **Install PostgreSQL** and create a new database:
+1. **Set up a local DynamoDB instance**:
+
+   Option 1: Using DynamoDB Local:
    ```bash
-   # On Ubuntu/Debian
-   sudo apt install postgresql
-   sudo -u postgres createdb data_room
-   sudo -u postgres createuser --interactive
+   # Download and run DynamoDB Local
+   mkdir -p ~/dynamodb-local
+   cd ~/dynamodb-local
+   curl -O https://d18zp2ou2cdphe.cloudfront.net/dynamodb_local_latest.tar.gz
+   tar -xzf dynamodb_local_latest.tar.gz
+   java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb -port 8000
    ```
 
-2. **Update your `.env` file** with PostgreSQL connection string:
-   ```
-   DATABASE_URL=postgresql+asyncpg://username:password@localhost/data_room
-   ```
-
-3. **Install the required Python driver**:
+   Option 2: Using LocalStack with Docker:
    ```bash
-   pip install asyncpg
+   docker run --name localstack -p 4566:4566 -e SERVICES=dynamodb -d localstack/localstack
    ```
 
-4. **Run migrations** with the new database:
-   ```bash
-   alembic upgrade head
+2. **Update your `.env` file** with AWS connection settings:
    ```
+   # For DynamoDB Local
+   AWS_REGION=us-east-1
+   AWS_ACCESS_KEY_ID=dummy
+   AWS_SECRET_ACCESS_KEY=dummy
+   AWS_ENDPOINT_URL=http://localhost:8000
+
+   # For LocalStack
+   # AWS_ENDPOINT_URL=http://localhost:4566
+   ```
+
+3. **Create the required DynamoDB tables**:
+   ```bash
+   cd backend
+   python scripts/create_local_dynamodb_tables.py
+   ```
+
+4. **Check your DynamoDB connection**:
+   ```bash
+   python scripts/check_dynamodb_connection.py
+   ```
+
+For more detailed information, refer to the [Local DynamoDB Guide](backend/docs/local_dynamodb.md).
 
 ### Google Drive Integration Setup
 
@@ -255,6 +274,30 @@ The application will be available at:
 - Backend API: http://localhost:8000
 - API Documentation: http://localhost:8000/docs
 
+### AWS Deployment
+
+The application includes a comprehensive set of scripts for deploying to AWS using CloudFormation.
+
+1. **Deploy Infrastructure**:
+   ```bash
+   cd infra/aws
+   ./deploy.sh --type all --stage dev
+   ```
+
+2. **Verify Deployment**:
+   ```bash
+   cd infra/aws
+   ./test_deploy.sh --type all --stage dev
+   ```
+
+3. **Teardown Infrastructure**:
+   ```bash
+   cd infra/aws
+   ./teardown.sh --type all --stage dev
+   ```
+
+For detailed instructions and configuration options, please refer to the [AWS Infrastructure Documentation](infra/aws/README.md).
+
 ## Development Workflow
 
 1. **Create a feature branch:**
@@ -290,67 +333,7 @@ FastAPI provides automatic API documentation:
 - Swagger UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
 
-## Improvement Roadmap
-
-### Database Improvements
-- **Migration to PostgreSQL**:
-  - Replace SQLite with PostgreSQL for better performance and concurrency
-  - Implement connection pooling for efficient resource usage
-  - Add database replication for high availability
-  - Implement proper indexing strategy for optimized queries
-
-### Infrastructure and DevOps
-- CI/CD pipeline implementation with GitHub Actions
-- Comprehensive branch protection rules
-- Infrastructure as Code for consistent deployments
-- Enhanced Docker setup with Kubernetes orchestration
-- Cloud-native storage with S3 integration
-
-### Security Enhancements
-- Centralized credential management with AWS Secrets Manager or HashiCorp Vault
-- Multi-factor authentication implementation
-- Fine-grained RBAC permissions
-- API rate limiting and enhanced protection
-- Automated security scanning in the CI pipeline
-
-### Additional Integrations
-- Microsoft OneDrive/SharePoint integration
-- Dropbox integration
-- Box integration
-- Custom API integrations for enterprise clients
-
-### Feature Enhancements
-- Document OCR processing
-- AI-based document classification
-- Automated metadata extraction
-- Document version control system
-- Feature flag system for controlled rollouts
-- Enhanced search with full-text capabilities
-
-### Performance Optimizations
-- Implement caching strategy (Redis)
-- API response optimization
-- Frontend bundle size reduction
-- Lazy loading for large document collections
-- Optimized database query patterns
-
-For a complete list of planned improvements, see the [improvement_roadmap.md](improvement_roadmap.md) file.
-
 ## Testing
 
 - **Backend**: pytest for unit and integration tests
 - **Frontend**: Jest and React Testing Library
-- **API Testing**: Postman collections included in `/docs/postman`
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
-Please follow our coding standards and include tests for new features.
-
-## License
-
-[MIT License](LICENSE)

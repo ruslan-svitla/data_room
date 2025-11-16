@@ -1,0 +1,109 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: IAM roles and policies for Data Room
+
+Parameters:
+  Stage:
+    Type: String
+    Description: The deployment stage (dev, staging, prod)
+    
+  UsersTableArn:
+    Type: String
+    Description: ARN of the DynamoDB Users table
+    
+  DocumentsTableArn:
+    Type: String
+    Description: ARN of the DynamoDB Documents table
+    
+  FoldersTableArn:
+    Type: String
+    Description: ARN of the DynamoDB Folders table
+    
+  IntegrationsTableArn:
+    Type: String
+    Description: ARN of the DynamoDB Integrations table
+    
+  DocumentSharesTableArn:
+    Type: String
+    Description: ARN of the DynamoDB Document Shares table
+    
+  FolderSharesTableArn:
+    Type: String
+    Description: ARN of the DynamoDB Folder Shares table
+    
+  DocumentVersionsTableArn:
+    Type: String
+    Description: ARN of the DynamoDB Document Versions table
+    
+  S3BucketArn:
+    Type: String
+    Description: ARN of the S3 bucket for file storage
+
+Resources:
+  # Create a role for the Lambda function
+  DataRoomLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "DataRoom-Lambda-Role-${Stage}"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+      Policies:
+        - PolicyName: DataRoomDynamoDBAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "dynamodb:PutItem"
+                  - "dynamodb:GetItem"
+                  - "dynamodb:UpdateItem"
+                  - "dynamodb:DeleteItem"
+                  - "dynamodb:Scan"
+                  - "dynamodb:Query"
+                  - "dynamodb:BatchGetItem"
+                  - "dynamodb:BatchWriteItem"
+                Resource:
+                  - !Ref UsersTableArn
+                  - !Ref DocumentsTableArn
+                  - !Ref FoldersTableArn
+                  - !Ref IntegrationsTableArn
+                  - !Ref DocumentSharesTableArn
+                  - !Ref FolderSharesTableArn
+                  - !Ref DocumentVersionsTableArn
+                  - !Sub "${UsersTableArn}/index/*"
+                  - !Sub "${DocumentsTableArn}/index/*"
+                  - !Sub "${FoldersTableArn}/index/*"
+                  - !Sub "${IntegrationsTableArn}/index/*"
+                  - !Sub "${DocumentSharesTableArn}/index/*"
+                  - !Sub "${FolderSharesTableArn}/index/*"
+                  - !Sub "${DocumentVersionsTableArn}/index/*"
+              - Effect: Allow
+                Action:
+                  - "dynamodb:ListTables"
+                Resource: "*"
+        - PolicyName: DataRoomS3Access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "s3:GetObject"
+                  - "s3:PutObject"
+                  - "s3:DeleteObject"
+                  - "s3:ListBucket"
+                Resource:
+                  - !Ref S3BucketArn
+                  - !Sub "${S3BucketArn}/*"
+
+Outputs:
+  DataRoomLambdaRoleArn:
+    Description: "ARN of the IAM role for Lambda"
+    Value: !GetAtt DataRoomLambdaRole.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-LambdaRoleArn"

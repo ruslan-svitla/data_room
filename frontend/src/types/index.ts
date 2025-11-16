@@ -5,6 +5,7 @@ export interface User {
   name: string;
   created_at: string;
   updated_at: string;
+  auth_provider?: string;
 }
 
 export interface AuthState {
@@ -16,6 +17,11 @@ export interface AuthState {
 export interface LoginCredentials {
   username: string;
   password: string;
+}
+
+export interface GoogleLoginCredentials {
+  id_token: string;
+  access_token?: string;
 }
 
 export interface LoginResponse {

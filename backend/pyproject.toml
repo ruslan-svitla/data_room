@@ -8,14 +8,13 @@ version = "0.1.0"
 description = "Data Room API for secure document sharing"
 readme = "README.md"
 requires-python = ">=3.12"
-license = {text = "Proprietary"}
+license = { text = "Proprietary" }
 authors = [
-    {name = "Your Name", email = "your.email@example.com"}
+    { name = "Your Name", email = "your.email@example.com" }
 ]
 dependencies = [
     "fastapi>=0.100.0",
     "uvicorn>=0.22.0",
-    "sqlalchemy>=2.0.0",
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
     "python-jose>=3.3.0",
@@ -34,10 +33,12 @@ dependencies = [
     "greenlet>=3.2.4",
     "python-dotenv>=1.0.0",
     "httpx>=0.24.0",
+    "boto3>=1.34.0",
+    "magnum>=21.0.1",
 ]
 
 [tool.setuptools]
-packages = {find = {where = ["."], exclude = ["uploads", "tests", "*.tests", "*.tests.*"]}}
+packages = { find = { where = ["."], exclude = ["uploads", "tests", "*.tests", "*.tests.*"] } }
 include-package-data = true
 
 [project.optional-dependencies]
@@ -50,6 +51,7 @@ dev = [
     "alembic>=1.17.1",
     "greenlet>=3.2.4",
     "pytest-cov>=7.0.0",
+    "moto>=5.1.17",
 ]
 
 [tool.black]
@@ -119,7 +121,7 @@ exclude = [
     "build",
     "dist",
     "node_modules",
-    "venv",
+    "venv"
 ]
 
 # Auto-fix imports
@@ -129,16 +131,13 @@ fix = true
 # Enable Pyflakes `F`, pycodestyle `E`, isort `I`, flake8-bugbear `B`, and pyupgrade `UP`
 select = ["E", "F", "I", "B", "UP"]
 ignore = [
-    "B008",  # Ignore B008 which complains about FastAPI Depends() usage
-    "E501",  # Ignore line too long errors
-    "E712",  # Ignore comparing against False
-    "B904",  # Ignore raise from err
-    "F401",  # Ignore unused imports in __init__.py files
-    "UP046",  # Ignore generic class warning
+    "B008", # Ignore B008 which complains about FastAPI Depends() usage
+    "E501", # Ignore line too long errors
+    "E712", # Ignore comparing against False
+    "B904", # Ignore raise from err
+    "F401", # Ignore unused imports in __init__.py files
+    "UP046", # Ignore generic class warning
 ]
-
-[tool.ruff.lint.isort]
-known-third-party = ["fastapi", "pydantic", "sqlalchemy"]
 
 [tool.ruff.format]
 quote-style = "double"

@@ -30,6 +30,15 @@ const DashboardPage = () => {
     });
   };
 
+  // Helper function to format file size
+  const formatFileSize = (bytes?: number): string => {
+    if (!bytes || bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
@@ -117,7 +126,7 @@ const DashboardPage = () => {
                     >
                       <Typography variant="body1">{document.name}</Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Added on {formatDate(document.created_at)} • {(document.size / (1024 * 1024)).toFixed(2)} MB
+                        Added on {formatDate(document.created_at)} • {formatFileSize(document.file_size || document.size)}
                       </Typography>
                     </Box>
                   ))}

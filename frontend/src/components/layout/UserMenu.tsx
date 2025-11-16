@@ -7,9 +7,9 @@ import {
   MenuItem,
   Tooltip,
   Typography,
-  Divider,
-} from '@mui/material';
+  Divider} from '@mui/material';
 import { useAuth } from '../../context/AuthContext';
+import ThemeToggle from '../common/ThemeToggle';
 
 const UserMenu = () => {
   const { user, logout } = useAuth();
@@ -65,9 +65,7 @@ const UserMenu = () => {
         PaperProps={{
           sx: {
             mt: 1,
-            width: 200,
-          },
-        }}
+            width: 200}}}
       >
         <Box sx={{ px: 2, py: 1 }}>
           <Typography variant="subtitle1" noWrap>
@@ -77,6 +75,13 @@ const UserMenu = () => {
             {user.email}
           </Typography>
         </Box>
+        <Divider />
+        <MenuItem>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+            <Typography>Theme Mode</Typography>
+            <ThemeToggle />
+          </Box>
+        </MenuItem>
         <Divider />
         <MenuItem onClick={handleLogout}>Logout</MenuItem>
       </Menu>

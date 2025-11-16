@@ -1,6 +1,9 @@
+import logging
 import mimetypes
 import os
-import logging
+from datetime import datetime
+from pathlib import Path
+from typing import BinaryIO, Optional
 
 from fastapi import UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,7 +11,6 @@ from sqlalchemy.future import select
 
 from app.core.config import settings
 from app.core.security import generate_uuid
-from datetime import datetime
 from app.models.document import Document, DocumentShare, DocumentVersion
 from app.schemas.document import (
     DocumentCreate,
@@ -22,18 +24,41 @@ from app.services.base import BaseService
 logger = logging.getLogger(__name__)
 
 
-class DocumentService(BaseService[Document, DocumentCreate, DocumentUpdate]):
-    """Service for document operations"""
+class FileSystemStorage:
+    """Local filesystem storage adapter.
+    Used for local development and testing.
+    """
 
-    async def _delete_file_from_filesystem(self, file_path: str) -> bool:
-        """Delete a file from the filesystem
+    def __init__(self, upload_folder: str = None):
+        """Initialize with upload folder path."""
+        self.upload_folder = upload_folder or settings.UPLOAD_FOLDER
+        # Ensure upload folder exists
+        os.makedirs(self.upload_folder, exist_ok=True)
 
-        Args:
-            file_path: Path to the file to delete
+    async def save_file(self, file: UploadFile, filename: str | None = None) -> str:
+        """Save file to local filesystem."""
+        if not filename:
+            filename = file.filename
 
-        Returns:
-            bool: True if the file was deleted or didn't exist, False if an error occurred
-        """
+        file_path = os.path.join(self.upload_folder, filename)
+
+        # Save file to disk - using async file operations
+        content = await file.read()
+        async with open(file_path, "wb") as f:
+            await f.write(content)
+
+        return file_path
+
+    async def get_file(self, filename: str) -> Path:
+        """Get file from local filesystem."""
+        file_path = os.path.join(self.upload_folder, filename)
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"File not found: {file_path}")
+        return Path(file_path)
+
+    async def delete_file(self, filename: str) -> bool:
+        """Delete file from local filesystem."""
+        file_path = os.path.join(self.upload_folder, filename)
         try:
             if os.path.exists(file_path):
                 os.remove(file_path)
@@ -42,6 +67,39 @@ class DocumentService(BaseService[Document, DocumentCreate, DocumentUpdate]):
             else:
                 logger.warning(f"File not found during deletion: {file_path}")
                 return True  # Return True if file doesn't exist (already deleted)
+        except Exception as e:
+            logger.error(f"Error deleting file {file_path}: {str(e)}")
+            return False
+
+
+class DocumentService(BaseService[Document, DocumentCreate, DocumentUpdate]):
+    """Service for document operations"""
+
+    def __init__(self, model):
+        super().__init__(model)
+        # Get the appropriate storage provider based on environment
+        from app.utils.storage_factory import get_storage_provider
+
+        self.storage = get_storage_provider()
+
+    async def save_content(
+        self, content: bytes, filename: str, content_type: str = None
+    ) -> str:
+        """Save content using the storage provider"""
+        return await self.storage.save_content(content, filename, content_type)
+
+    async def _delete_file_from_filesystem(self, file_path: str) -> bool:
+        """Delete a file from the storage
+
+        Args:
+            file_path: Path to the file to delete
+
+        Returns:
+            bool: True if the file was deleted or didn't exist, False if an error occurred
+        """
+        try:
+            # Extract filename from path if needed, but storage provider handles it
+            return await self.storage.delete_file(file_path)
         except Exception as e:
             logger.error(f"Error deleting file {file_path}: {str(e)}")
             return False
@@ -92,11 +150,10 @@ class DocumentService(BaseService[Document, DocumentCreate, DocumentUpdate]):
         # Generate unique ID and filename
         doc_id = generate_uuid()
         extension = os.path.splitext(file.filename)[1] if file.filename else ""
-        file_path = os.path.join(settings.UPLOAD_FOLDER, f"{doc_id}{extension}")
+        filename = f"{doc_id}{extension}"
 
-        # Save file to disk - using async file operations
-        async with open(file_path, "wb") as f:
-            await f.write(file_content)
+        # Save file using storage provider
+        file_path = await self.storage.save_file(file, filename)
 
         # Detect file type
         file_type = (
@@ -160,13 +217,12 @@ class DocumentService(BaseService[Document, DocumentCreate, DocumentUpdate]):
         # Generate unique ID and filename
         version_id = generate_uuid()
         extension = os.path.splitext(file.filename)[1] if file.filename else ""
-        file_path = os.path.join(
-            settings.UPLOAD_FOLDER, f"{document_id}_v{version_number}{extension}"
-        )
+        filename = f"{document_id}_v{version_number}{extension}"
 
-        # Save file to disk - using async file operations
-        async with open(file_path, "wb") as f:
-            await f.write(file_content)
+        # Save file using storage provider
+        file_path = await self.storage.save_content(
+            file_content, filename, file.content_type
+        )
 
         # Create version record
         version = DocumentVersion(
@@ -264,16 +320,16 @@ class DocumentService(BaseService[Document, DocumentCreate, DocumentUpdate]):
         await db.delete(obj)
         await db.commit()
         return obj
-    
+
     async def remove_document_and_files(self, db: AsyncSession, *, id: str) -> Document:
         """Remove a document and its physical files
-    
+
         This method performs both soft delete in the database and physical deletion of files.
-    
+
         Args:
             db: Database session
             id: Document ID
-    
+
         Returns:
             Document: The updated document object with is_deleted=True
         """
@@ -282,26 +338,26 @@ class DocumentService(BaseService[Document, DocumentCreate, DocumentUpdate]):
         document = result.scalars().first()
         if not document:
             return None
-    
+
         # Get all versions to delete their files
         versions = await self.get_versions(db, document_id=id)
-    
+
         # Delete all version files (including the current one which may also be in versions)
         deleted_files = []
         for version in versions:
             if await self._delete_file_from_filesystem(version.file_path):
                 deleted_files.append(version.file_path)
-    
+
         # Also delete the current document file if it's not in versions
         if document.file_path not in deleted_files:
             await self._delete_file_from_filesystem(document.file_path)
-    
+
         # Perform soft delete in database
         document.is_deleted = True
         db.add(document)
         await db.commit()
         await db.refresh(document)
-    
+
         return document
 
     async def is_shared_with_user(
@@ -336,7 +392,7 @@ class DocumentService(BaseService[Document, DocumentCreate, DocumentUpdate]):
         file_type: str,
         file_size: int,
         folder_id: str = None,
-        is_public: bool = False
+        is_public: bool = False,
     ) -> str:
         """Create a document from an existing file"""
         # Generate unique ID

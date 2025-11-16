@@ -1,0 +1,159 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Data Room AWS Deployment - Main template
+
+  SAM Template for deploying Data Room application using AWS Lambda, API Gateway, and DynamoDB
+
+Parameters:
+  Stage:
+    Type: String
+    Default: dev
+    Description: The deployment stage (dev, staging, prod)
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+
+  GoogleClientId:
+    Type: String
+    Description: Google Client ID for OAuth authentication
+    NoEcho: true
+
+  GoogleClientSecret:
+    Type: String
+    Description: Google Client Secret for OAuth authentication
+    NoEcho: true
+
+  SecretKey:
+    Type: String
+    Description: Secret key for JWT authentication
+    NoEcho: true
+    Default: '{{resolve:secretsmanager:DataRoomSecrets:SecretString:SECRET_KEY}}'
+
+  DomainName:
+    Type: String
+    Description: Optional custom domain name for the frontend
+    Default: ""
+
+Resources:
+  # Storage stack
+  StorageStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./storage/s3.yaml
+      Parameters:
+        Stage: !Ref Stage
+
+  # Database stack
+  DatabaseStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./database/dynamodb.yaml
+      Parameters:
+        Stage: !Ref Stage
+
+  # IAM roles stack
+  IamStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - StorageStack
+      - DatabaseStack
+    Properties:
+      TemplateURL: ./iam/roles.yaml
+      Parameters:
+        Stage: !Ref Stage
+        UsersTableArn: !GetAtt DatabaseStack.Outputs.UsersTableArn
+        DocumentsTableArn: !GetAtt DatabaseStack.Outputs.DocumentsTableArn
+        FoldersTableArn: !GetAtt DatabaseStack.Outputs.FoldersTableArn
+        IntegrationsTableArn: !GetAtt DatabaseStack.Outputs.IntegrationsTableArn
+        DocumentSharesTableArn: !GetAtt DatabaseStack.Outputs.DocumentSharesTableArn
+        FolderSharesTableArn: !GetAtt DatabaseStack.Outputs.FolderSharesTableArn
+        DocumentVersionsTableArn: !GetAtt DatabaseStack.Outputs.DocumentVersionsTableArn
+        S3BucketArn: !GetAtt StorageStack.Outputs.DataRoomBucketArn
+
+  # API stack
+  ApiStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - IamStack
+      - DatabaseStack
+      - StorageStack
+    Properties:
+      TemplateURL: ./api/api-gateway.yaml
+      Parameters:
+        Stage: !Ref Stage
+        GoogleClientId: !Ref GoogleClientId
+        GoogleClientSecret: !Ref GoogleClientSecret
+        SecretKey: !Ref SecretKey
+        DataRoomLambdaRoleArn: !GetAtt IamStack.Outputs.DataRoomLambdaRoleArn
+        UsersTableName: !GetAtt DatabaseStack.Outputs.UsersTableName
+        DocumentsTableName: !GetAtt DatabaseStack.Outputs.DocumentsTableName
+        FoldersTableName: !GetAtt DatabaseStack.Outputs.FoldersTableName
+        IntegrationsTableName: !GetAtt DatabaseStack.Outputs.IntegrationsTableName
+        DocumentSharesTableName: !GetAtt DatabaseStack.Outputs.DocumentSharesTableName
+        FolderSharesTableName: !GetAtt DatabaseStack.Outputs.FolderSharesTableName
+        DocumentVersionsTableName: !GetAtt DatabaseStack.Outputs.DocumentVersionsTableName
+        S3BucketName: !GetAtt StorageStack.Outputs.DataRoomBucketName
+  
+  # Frontend stack
+  FrontendStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ApiStack
+    Properties:
+      TemplateURL: ./frontend/static-site.yaml
+      Parameters:
+        Stage: !Ref Stage
+        ApiEndpoint: !GetAtt ApiStack.Outputs.DataRoomApiEndpoint
+        DomainName: !Ref DomainName
+
+Outputs:
+  DataRoomApiEndpoint:
+    Description: "API Gateway endpoint URL for the Data Room API"
+    Value: !GetAtt ApiStack.Outputs.DataRoomApiEndpoint
+
+  DataRoomBucketName:
+    Description: "S3 Bucket for file storage"
+    Value: !GetAtt StorageStack.Outputs.DataRoomBucketName
+
+  UsersTableName:
+    Description: "DynamoDB table for Users"
+    Value: !GetAtt DatabaseStack.Outputs.UsersTableName
+
+  DocumentsTableName:
+    Description: "DynamoDB table for Documents" 
+    Value: !GetAtt DatabaseStack.Outputs.DocumentsTableName
+
+  FoldersTableName:
+    Description: "DynamoDB table for Folders"
+    Value: !GetAtt DatabaseStack.Outputs.FoldersTableName
+
+  IntegrationsTableName:
+    Description: "DynamoDB table for Integrations"
+    Value: !GetAtt DatabaseStack.Outputs.IntegrationsTableName
+
+  DocumentSharesTableName:
+    Description: "DynamoDB table for Document Shares"
+    Value: !GetAtt DatabaseStack.Outputs.DocumentSharesTableName
+
+  FolderSharesTableName:
+    Description: "DynamoDB table for Folder Shares"
+    Value: !GetAtt DatabaseStack.Outputs.FolderSharesTableName
+
+  DocumentVersionsTableName:
+    Description: "DynamoDB table for Document Versions"
+    Value: !GetAtt DatabaseStack.Outputs.DocumentVersionsTableName
+
+  # Frontend outputs
+  FrontendBucketName:
+    Description: "S3 Bucket for frontend hosting"
+    Value: !GetAtt FrontendStack.Outputs.FrontendBucketName
+
+  CloudFrontDistributionId:
+    Description: "CloudFront distribution ID"
+    Value: !GetAtt FrontendStack.Outputs.CloudFrontDistributionId
+
+  CloudFrontDomainName:
+    Description: "CloudFront domain name"
+    Value: !GetAtt FrontendStack.Outputs.CloudFrontDomainName

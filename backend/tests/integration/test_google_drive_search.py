@@ -1,11 +1,12 @@
 import json
+from unittest.mock import AsyncMock, patch
+
 import pytest
-from unittest.mock import patch, AsyncMock
 from fastapi.testclient import TestClient
 
 from app.api.deps import get_current_user
-from app.models.user import User
 from app.models.integration import ExternalIntegration
+from app.models.user import User
 
 
 @pytest.fixture
@@ -15,7 +16,7 @@ def mock_user():
         id="test-user-id",
         email="test@example.com",
         is_active=True,
-        hashed_password="fakehashed"
+        hashed_password="fakehashed",
     )
 
 
@@ -39,30 +40,37 @@ async def test_search_google_drive(client, app, mock_user, mock_integration):
     """Test searching files in Google Drive"""
     # Override auth dependency
     app.dependency_overrides[get_current_user] = lambda: mock_user
-    
-    with patch('app.api.api_v1.endpoints.integrations.integration_service') as mock_int_service, \
-         patch('app.api.api_v1.endpoints.integrations.google_drive_service') as mock_drive_service:
-        
+
+    with (
+        patch(
+            "app.api.api_v1.endpoints.integrations.integration_service"
+        ) as mock_int_service,
+        patch(
+            "app.api.api_v1.endpoints.integrations.google_drive_service"
+        ) as mock_drive_service,
+    ):
         # Mock the service methods
-        mock_int_service.get_by_user_and_provider = AsyncMock(return_value=mock_integration)
-        
+        mock_int_service.get_by_user_and_provider = AsyncMock(
+            return_value=mock_integration
+        )
+
         # Mock search results
         mock_files = [
             {
                 "id": "file1",
                 "name": "Test Document.pdf",
                 "mime_type": "application/pdf",
-                "is_folder": False
+                "is_folder": False,
             }
         ]
         mock_drive_service.search_files = AsyncMock(return_value=(mock_files, None))
-        
+
         # Make request to endpoint
         response = client.get(
             "/api/v1/integrations/google/search?query=test",
-            headers={"Authorization": "Bearer fake_token"}
+            headers={"Authorization": "Bearer fake_token"},
         )
-        
+
         # Verify response
         assert response.status_code == 200
         data = response.json()
@@ -76,15 +84,22 @@ async def test_get_google_drive_file(client, app, mock_user, mock_integration):
     """Test getting a specific file from Google Drive"""
     # Override auth dependency
     app.dependency_overrides[get_current_user] = lambda: mock_user
-    
+
     file_id = "test-file-id"
-    
-    with patch('app.api.api_v1.endpoints.integrations.integration_service') as mock_int_service, \
-         patch('app.api.api_v1.endpoints.integrations.google_drive_service') as mock_drive_service:
-        
+
+    with (
+        patch(
+            "app.api.api_v1.endpoints.integrations.integration_service"
+        ) as mock_int_service,
+        patch(
+            "app.api.api_v1.endpoints.integrations.google_drive_service"
+        ) as mock_drive_service,
+    ):
         # Mock the service methods
-        mock_int_service.get_by_user_and_provider = AsyncMock(return_value=mock_integration)
-        
+        mock_int_service.get_by_user_and_provider = AsyncMock(
+            return_value=mock_integration
+        )
+
         # Mock file metadata
         mock_file = {
             "id": file_id,
@@ -96,13 +111,13 @@ async def test_get_google_drive_file(client, app, mock_user, mock_integration):
             "thumbnail_link": "https://drive.google.com/thumbnail?id=file",
         }
         mock_drive_service.get_file_metadata = AsyncMock(return_value=mock_file)
-        
+
         # Make request to endpoint
         response = client.get(
             f"/api/v1/integrations/google/files/{file_id}",
-            headers={"Authorization": "Bearer fake_token"}
+            headers={"Authorization": "Bearer fake_token"},
         )
-        
+
         # Verify response
         assert response.status_code == 200
         data = response.json()

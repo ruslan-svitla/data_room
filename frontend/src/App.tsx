@@ -7,6 +7,7 @@ import DocumentsPage from './pages/DocumentsPage';
 import IntegrationsPage from './pages/IntegrationsPage';
 import GoogleDrivePage from './pages/GoogleDrivePage';
 import GoogleAuthCallback from './pages/GoogleAuthCallback';
+import HealthPage from './pages/HealthPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 
@@ -16,6 +17,7 @@ function App() {
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/health" element={<HealthPage />} />
         
           {/* Special route for Google Auth callback */}
           <Route path="/auth/google/callback" element={

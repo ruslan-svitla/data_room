@@ -1,77 +1,57 @@
-from sqlalchemy import (
-    Boolean,
-    Column,
-    DateTime,
-    ForeignKey,
-    Integer,
-    String,
-    Text,
-    func,
-)
-from sqlalchemy.orm import relationship
+from datetime import datetime
+from typing import Optional
 
+from app.core.security import generate_uuid
 from app.db.base_class import Base
 
 
 class Document(Base):
     """Document model"""
 
-    __tablename__ = "documents"
+    def __init__(self, **kwargs):
+        self.id: str = kwargs.get("id", generate_uuid())
+        self.name: str = kwargs.get("name")
+        self.description: str | None = kwargs.get("description")
+        self.file_path: str = kwargs.get("file_path")
+        self.file_type: str = kwargs.get("file_type")
+        self.file_size: int = kwargs.get("file_size", 0)
+        self.owner_id: str = kwargs.get("owner_id")
+        self.folder_id: str | None = kwargs.get("folder_id")
+        self.is_deleted: bool = kwargs.get("is_deleted", False)
+        self.is_public: bool = kwargs.get("is_public", False)
+        self.created_at: datetime = kwargs.get("created_at", datetime.now())
+        self.updated_at: datetime | None = kwargs.get("updated_at", datetime.now())
 
-    id = Column(String, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    description = Column(Text, nullable=True)
-    file_path = Column(String, nullable=False)
-    file_type = Column(String, nullable=False)
-    file_size = Column(Integer, nullable=False)  # in bytes
-    owner_id = Column(String, ForeignKey("users.id"), nullable=False)
-    folder_id = Column(String, ForeignKey("folders.id"), nullable=True)
-    is_deleted = Column(Boolean, default=False)
-    is_public = Column(Boolean, default=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-
-    # Relationships
-    owner = relationship("User", back_populates="documents")
-    folder = relationship("Folder", back_populates="documents")
-    shares = relationship(
-        "DocumentShare", back_populates="document", cascade="all, delete-orphan"
-    )
-    versions = relationship(
-        "DocumentVersion", back_populates="document", cascade="all, delete-orphan"
-    )
+    def update_timestamp(self):
+        """Update the updated_at timestamp"""
+        self.updated_at = datetime.now()
 
 
 class DocumentVersion(Base):
     """Document version model for version control"""
 
-    __tablename__ = "document_versions"
-
-    id = Column(String, primary_key=True, index=True)
-    document_id = Column(String, ForeignKey("documents.id"), nullable=False)
-    version_number = Column(Integer, nullable=False)
-    file_path = Column(String, nullable=False)
-    file_size = Column(Integer, nullable=False)  # in bytes
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    created_by = Column(String, ForeignKey("users.id"), nullable=False)
-
-    # Relationships
-    document = relationship("Document", back_populates="versions")
+    def __init__(self, **kwargs):
+        self.id: str = kwargs.get("id", generate_uuid())
+        self.document_id: str = kwargs.get("document_id")
+        self.version_number: int = kwargs.get("version_number")
+        self.file_path: str = kwargs.get("file_path")
+        self.file_size: int = kwargs.get("file_size", 0)
+        self.created_at: datetime = kwargs.get("created_at", datetime.now())
+        self.created_by: str = kwargs.get("created_by")
 
 
 class DocumentShare(Base):
     """Document sharing model"""
 
-    __tablename__ = "document_shares"
+    def __init__(self, **kwargs):
+        self.id: str = kwargs.get("id", generate_uuid())
+        self.document_id: str = kwargs.get("document_id")
+        self.user_id: str = kwargs.get("user_id")
+        self.can_edit: bool = kwargs.get("can_edit", False)
+        self.can_delete: bool = kwargs.get("can_delete", False)
+        self.created_at: datetime = kwargs.get("created_at", datetime.now())
+        self.updated_at: datetime | None = kwargs.get("updated_at")
 
-    id = Column(String, primary_key=True, index=True)
-    document_id = Column(String, ForeignKey("documents.id"), nullable=False)
-    user_id = Column(String, ForeignKey("users.id"), nullable=False)
-    can_edit = Column(Boolean, default=False)
-    can_delete = Column(Boolean, default=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-
-    # Relationships
-    document = relationship("Document", back_populates="shares")
-    user = relationship("User", back_populates="shared_documents")
+    def update_timestamp(self):
+        """Update the updated_at timestamp"""
+        self.updated_at = datetime.now()

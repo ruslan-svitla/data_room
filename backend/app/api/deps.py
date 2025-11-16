@@ -2,12 +2,10 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from pydantic import ValidationError
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 
 from app.core.config import settings
 from app.core.security import ALGORITHM
-from app.db.session import get_db
+from app.db.dynamodb_session import DynamoDBSession, get_db
 from app.models.user import User
 from app.schemas.token import TokenPayload
 
@@ -15,7 +13,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login
 
 
 async def get_current_user(
-    db: AsyncSession = Depends(get_db), token: str = Depends(oauth2_scheme)
+    db: DynamoDBSession = Depends(get_db), token: str = Depends(oauth2_scheme)
 ) -> User:
     """
     Validate token and return current user
@@ -40,8 +38,11 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    result = await db.execute(select(User).filter(User.id == token_data.sub))
-    user = result.scalars().first()
+    # Use DynamoDB to retrieve user by ID
+    table = db.dynamodb.Table(db.tables.get("users"))
+    response = table.get_item(Key={"id": token_data.sub})
+    user_data = response.get("Item")
+    user = User(**user_data) if user_data else None
 
     if not user:
         raise HTTPException(

@@ -9,7 +9,11 @@
     "serve": "vite preview",
     "test": "vitest"
   },
-  "keywords": ["data room", "google drive", "integration"],
+  "keywords": [
+    "data room",
+    "google drive",
+    "integration"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -25,10 +29,15 @@
     "react-router-dom": "^6.11.1"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^20.2.3",
     "@types/react": "^18.2.7",
     "@types/react-dom": "^18.2.4",
     "@vitejs/plugin-react": "^4.0.0",
+    "jsdom": "^27.2.0",
     "typescript": "^5.0.4",
     "vite": "^4.3.8",
     "vitest": "^0.31.1"

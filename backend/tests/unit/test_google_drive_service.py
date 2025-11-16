@@ -1,11 +1,12 @@
-import pytest
+from datetime import UTC, datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime, timezone, timedelta
-import aiohttp
 
-from app.services.integration import GoogleDriveService, ensure_timezone_aware
+import aiohttp
+import pytest
+
 from app.models.integration import ExternalIntegration
 from app.schemas.integration import GoogleDriveFile
+from app.services.integration import GoogleDriveService, ensure_timezone_aware
 
 
 @pytest.fixture
@@ -18,10 +19,10 @@ def google_drive_service():
 async def test_get_authorization_url(google_drive_service):
     # Arrange
     mock_state = '{"user_id": "test-user-id"}'
-    
+
     # Act
     result = google_drive_service.get_authorization_url(mock_state)
-    
+
     # Assert
     assert "accounts.google.com/o/oauth2/v2/auth" in result
     assert "client_id=" in result
@@ -38,12 +39,14 @@ async def test_exchange_code_for_token(google_drive_service):
         "access_token": "mock-access-token",
         "refresh_token": "mock-refresh-token",
         "expires_in": 3600,
-        "token_type": "Bearer"
+        "token_type": "Bearer",
     }
 
     # Let's directly patch the exchange_code_for_token method
     original_method = GoogleDriveService.exchange_code_for_token
-    GoogleDriveService.exchange_code_for_token = AsyncMock(return_value=mock_response_json)
+    GoogleDriveService.exchange_code_for_token = AsyncMock(
+        return_value=mock_response_json
+    )
 
     try:
         # Act
@@ -64,7 +67,9 @@ async def test_exchange_code_for_token_error(google_drive_service):
 
     # Let's directly patch the exchange_code_for_token method to raise an error
     original_method = GoogleDriveService.exchange_code_for_token
-    GoogleDriveService.exchange_code_for_token = AsyncMock(side_effect=ValueError("Invalid authorization code"))
+    GoogleDriveService.exchange_code_for_token = AsyncMock(
+        side_effect=ValueError("Invalid authorization code")
+    )
 
     try:
         # Act & Assert
@@ -85,7 +90,7 @@ async def test_get_user_info(google_drive_service):
         "id": "test-google-user-id",
         "email": "test-user@gmail.com",
         "name": "Test User",
-        "picture": "https://example.com/profile.jpg"
+        "picture": "https://example.com/profile.jpg",
     }
 
     # Directly patch the get_user_info method
@@ -115,12 +120,14 @@ async def test_refresh_token_if_needed_not_expired(google_drive_service):
         provider="google_drive",
         access_token="current-access-token",
         refresh_token="refresh-token",
-        token_expiry=datetime.now(timezone.utc) + timedelta(hours=1)
+        token_expiry=datetime.now(UTC) + timedelta(hours=1),
     )
-    
+
     # Act
-    result = await google_drive_service._refresh_token_if_needed(mock_db, mock_integration)
-    
+    result = await google_drive_service._refresh_token_if_needed(
+        mock_db, mock_integration
+    )
+
     # Assert
     assert result == mock_integration
     assert result.access_token == "current-access-token"
@@ -140,13 +147,13 @@ async def test_refresh_token_if_needed_expired(google_drive_service):
         provider="google_drive",
         access_token="expired-access-token",
         refresh_token="refresh-token",
-        token_expiry=datetime.now(timezone.utc) - timedelta(hours=1)
+        token_expiry=datetime.now(UTC) - timedelta(hours=1),
     )
 
     # Create a modified version of _refresh_token_if_needed that doesn't use aiohttp
     async def mock_refresh(self, db, integration):
         integration.access_token = "new-access-token"
-        integration.token_expiry = datetime.now(timezone.utc) + timedelta(hours=1)
+        integration.token_expiry = datetime.now(UTC) + timedelta(hours=1)
         db.add(integration)
         await db.commit()
         return integration
@@ -157,7 +164,9 @@ async def test_refresh_token_if_needed_expired(google_drive_service):
 
     try:
         # Act
-        result = await google_drive_service._refresh_token_if_needed(mock_db, mock_integration)
+        result = await google_drive_service._refresh_token_if_needed(
+            mock_db, mock_integration
+        )
 
         # Assert
         assert result.access_token == "new-access-token"
@@ -174,7 +183,7 @@ async def test_list_files(google_drive_service):
     mock_db = AsyncMock()
     mock_integration = MagicMock()
     mock_folder_id = "test-folder-id"
-    
+
     # Mock file list response from Google Drive API
     mock_gdrive_response = {
         "files": [
@@ -187,7 +196,7 @@ async def test_list_files(google_drive_service):
                 "thumbnailLink": "https://drive.google.com/thumbnail?id=file1",
                 "modifiedTime": "2023-01-01T12:00:00Z",
                 "createdTime": "2023-01-01T10:00:00Z",
-                "parents": ["folder1"]
+                "parents": ["folder1"],
             },
             {
                 "id": "folder1",
@@ -196,33 +205,38 @@ async def test_list_files(google_drive_service):
                 "webViewLink": "https://drive.google.com/drive/folders/folder1",
                 "modifiedTime": "2023-01-01T12:00:00Z",
                 "createdTime": "2023-01-01T10:00:00Z",
-                "parents": ["root"]
-            }
+                "parents": ["root"],
+            },
         ],
-        "nextPageToken": "page-token-123"
+        "nextPageToken": "page-token-123",
     }
-    
+
     # Mock methods
-    with patch.object(google_drive_service, '_refresh_token_if_needed', return_value=mock_integration) as mock_refresh, \
-         patch.object(google_drive_service, '_credentials_from_db_model', return_value=MagicMock()) as mock_creds, \
-         patch('app.services.integration.build') as mock_build:
-        
+    with (
+        patch.object(
+            google_drive_service,
+            "_refresh_token_if_needed",
+            return_value=mock_integration,
+        ) as mock_refresh,
+        patch.object(
+            google_drive_service, "_credentials_from_db_model", return_value=MagicMock()
+        ) as mock_creds,
+        patch("app.services.integration.build") as mock_build,
+    ):
         # Mock Drive service
         mock_files = MagicMock()
         mock_files.list.return_value.execute.return_value = mock_gdrive_response
-        
+
         mock_drive = MagicMock()
         mock_drive.files.return_value = mock_files
-        
+
         mock_build.return_value = mock_drive
-        
+
         # Act
         files, next_page_token = await google_drive_service.list_files(
-            mock_db, 
-            mock_integration,
-            folder_id=mock_folder_id
+            mock_db, mock_integration, folder_id=mock_folder_id
         )
-        
+
         # Assert
         assert len(files) == 2
         assert files[0].is_folder  # Folders should be sorted to appear first
@@ -241,7 +255,7 @@ async def test_get_file_metadata(google_drive_service):
     mock_db = AsyncMock()
     mock_integration = MagicMock()
     mock_file_id = "test-file-id"
-    
+
     # Mock file metadata response
     mock_gdrive_file = {
         "id": mock_file_id,
@@ -252,30 +266,35 @@ async def test_get_file_metadata(google_drive_service):
         "thumbnailLink": "https://drive.google.com/thumbnail?id=test-file-id",
         "modifiedTime": "2023-01-01T12:00:00Z",
         "createdTime": "2023-01-01T10:00:00Z",
-        "parents": ["folder1"]
+        "parents": ["folder1"],
     }
-    
+
     # Mock methods
-    with patch.object(google_drive_service, '_refresh_token_if_needed', return_value=mock_integration) as mock_refresh, \
-         patch.object(google_drive_service, '_credentials_from_db_model', return_value=MagicMock()) as mock_creds, \
-         patch('app.services.integration.build') as mock_build:
-        
+    with (
+        patch.object(
+            google_drive_service,
+            "_refresh_token_if_needed",
+            return_value=mock_integration,
+        ) as mock_refresh,
+        patch.object(
+            google_drive_service, "_credentials_from_db_model", return_value=MagicMock()
+        ) as mock_creds,
+        patch("app.services.integration.build") as mock_build,
+    ):
         # Mock Drive service
         mock_files = MagicMock()
         mock_files.get.return_value.execute.return_value = mock_gdrive_file
-        
+
         mock_drive = MagicMock()
         mock_drive.files.return_value = mock_files
-        
+
         mock_build.return_value = mock_drive
-        
+
         # Act
         file_metadata = await google_drive_service.get_file_metadata(
-            mock_db,
-            mock_integration,
-            mock_file_id
+            mock_db, mock_integration, mock_file_id
         )
-        
+
         # Assert
         assert file_metadata.id == mock_file_id
         assert file_metadata.name == "Test Document.docx"
@@ -287,7 +306,10 @@ async def test_get_file_metadata(google_drive_service):
         mock_refresh.assert_called_once_with(mock_db, mock_integration)
         mock_creds.assert_called_once_with(mock_integration)
         mock_build.assert_called_once()
-        mock_files.get.assert_called_once_with(fileId=mock_file_id, fields="id, name, mimeType, size, webViewLink, thumbnailLink, modifiedTime, createdTime, parents")
+        mock_files.get.assert_called_once_with(
+            fileId=mock_file_id,
+            fields="id, name, mimeType, size, webViewLink, webContentLink, thumbnailLink, md5Checksum, modifiedTime, createdTime, parents, exportLinks",
+        )
 
 
 @pytest.mark.asyncio
@@ -296,11 +318,11 @@ async def test_ensure_timezone_aware():
     naive_dt = datetime(2023, 1, 1, 12, 0, 0)
     aware_dt = ensure_timezone_aware(naive_dt)
     assert aware_dt.tzinfo is not None
-    
+
     # Test with timezone-aware datetime
-    already_aware = datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    already_aware = datetime(2023, 1, 1, 12, 0, 0, tzinfo=UTC)
     still_aware = ensure_timezone_aware(already_aware)
     assert still_aware.tzinfo is not None
-    
+
     # Test with None
     assert ensure_timezone_aware(None) is None

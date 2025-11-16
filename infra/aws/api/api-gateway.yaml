@@ -1,0 +1,121 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: API Gateway and Lambda function definitions for Data Room
+
+Parameters:
+  Stage:
+    Type: String
+    Description: The deployment stage (dev, staging, prod)
+    
+  GoogleClientId:
+    Type: String
+    Description: Google Client ID for OAuth authentication
+    
+  GoogleClientSecret:
+    Type: String
+    Description: Google Client Secret for OAuth authentication
+    
+  SecretKey:
+    Type: String
+    Description: Secret key for JWT authentication
+    
+  DataRoomLambdaRoleArn:
+    Type: String
+    Description: ARN of the IAM role for Lambda functions
+    
+  UsersTableName:
+    Type: String
+    Description: Name of the DynamoDB Users table
+    
+  DocumentsTableName:
+    Type: String
+    Description: Name of the DynamoDB Documents table
+    
+  FoldersTableName:
+    Type: String
+    Description: Name of the DynamoDB Folders table
+    
+  IntegrationsTableName:
+    Type: String
+    Description: Name of the DynamoDB Integrations table
+    
+  DocumentSharesTableName:
+    Type: String
+    Description: Name of the DynamoDB Document Shares table
+    
+  FolderSharesTableName:
+    Type: String
+    Description: Name of the DynamoDB Folder Shares table
+    
+  DocumentVersionsTableName:
+    Type: String
+    Description: Name of the DynamoDB Document Versions table
+    
+  S3BucketName:
+    Type: String
+    Description: Name of the S3 bucket for file storage
+    
+Resources:
+  DataRoomApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../../backend/
+      Handler: lambda_handler.handler
+      Role: !Ref DataRoomLambdaRoleArn
+      Timeout: 30
+      MemorySize: 512
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGatewayApi
+            Path: /{proxy+}
+            Method: ANY
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Stage
+          GOOGLE_CLIENT_ID: !Ref GoogleClientId
+          GOOGLE_CLIENT_SECRET: !Ref GoogleClientSecret
+          SECRET_KEY: !Ref SecretKey
+          UPLOAD_FOLDER: "/tmp/uploads"
+          LOG_LEVEL: INFO
+          CUSTOM_AWS_REGION: !Ref AWS::Region
+          S3_BUCKET: !Ref S3BucketName
+          DYNAMODB_USERS_TABLE: !Ref UsersTableName
+          DYNAMODB_DOCUMENTS_TABLE: !Ref DocumentsTableName
+          DYNAMODB_FOLDERS_TABLE: !Ref FoldersTableName
+          DYNAMODB_INTEGRATIONS_TABLE: !Ref IntegrationsTableName
+          DYNAMODB_DOCUMENT_SHARES_TABLE: !Ref DocumentSharesTableName
+          DYNAMODB_FOLDER_SHARES_TABLE: !Ref FolderSharesTableName
+          DYNAMODB_DOCUMENT_VERSIONS_TABLE: !Ref DocumentVersionsTableName
+          API_V1_STR: "/api/v1"
+          PROJECT_NAME: "Data Room API"
+
+  ApiGatewayApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Stage
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS,PATCH'"
+        AllowHeaders: "'Content-Type,Authorization,X-Request-ID,X-Process-Time'"
+        AllowOrigin: "'https://d18zp2ou2cdphe.cloudfront.net'"
+        AllowCredentials: true
+        MaxAge: 600
+      OpenApiVersion: '3.0.1'
+
+
+Outputs:
+  DataRoomApiEndpoint:
+    Description: "API Gateway endpoint URL for the Data Room API"
+    Value: !Sub "https://${ApiGatewayApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/"
+    Export:
+      Name: !Sub "${AWS::StackName}-ApiEndpoint"
+
+  ApiGatewayId:
+    Description: "ID of the API Gateway"
+    Value: !Ref ApiGatewayApi
+    Export:
+      Name: !Sub "${AWS::StackName}-ApiGatewayId"

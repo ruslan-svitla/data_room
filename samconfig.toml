@@ -1,0 +1,61 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "data-room"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket"
+s3_prefix = "data-room"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
+parameter_overrides = "Stage=dev"
+image_repositories = []
+template_file = "infra/aws/main.yaml"
+
+[storage]
+[storage.deploy]
+[storage.deploy.parameters]
+stack_name = "data-room-storage"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket"
+s3_prefix = "data-room-storage"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Stage=dev"
+template_file = "infra/aws/storage/s3.yaml"
+
+[database]
+[database.deploy]
+[database.deploy.parameters]
+stack_name = "data-room-database"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket"
+s3_prefix = "data-room-database"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Stage=dev"
+template_file = "infra/aws/database/dynamodb.yaml"
+
+[iam]
+[iam.deploy]
+[iam.deploy.parameters]
+stack_name = "data-room-iam"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket"
+s3_prefix = "data-room-iam"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
+parameter_overrides = "Stage=dev"
+template_file = "infra/aws/iam/roles.yaml"
+
+[api]
+[api.deploy]
+[api.deploy.parameters]
+stack_name = "data-room-api"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket"
+s3_prefix = "data-room-api"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Stage=dev"
+template_file = "infra/aws/api/api-gateway.yaml"

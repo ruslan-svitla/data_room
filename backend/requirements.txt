@@ -1,0 +1,55 @@
+# backend/requirements.txt
+
+# Core web framework
+fastapi
+
+# AWS Lambda adapter for ASGI applications like FastAPI
+# Note the name: "mangum", not "magnum"
+mangum
+
+# For environment variable and settings management
+pydantic-settings
+
+# For data validation (pulled in by FastAPI, but good to be explicit)
+pydantic
+
+# AWS SDK for Python to interact with S3, DynamoDB, etc.
+boto3
+
+# For Google OAuth integration
+google-auth-oauthlib
+google-api-python-client
+
+# For handling multipart/form-data (file uploads)
+python-multipart
+
+# For validating email addresses
+email-validator
+
+# For JWTs and authentication
+python-jose[cryptography]
+
+# For password hashing
+bcrypt
+
+# Asynchronous HTTP client (if your app makes external API calls)
+httpx
+
+# A better logger
+loguru
+
+pydantic_core
+
+email-validator
+
+uvicorn
+
+passlib
+
+# For testing with mocked AWS services
+moto
+
+# Keeep sqlalchemy for backward compatibility during migration
+sqlalchemy
+
+aiohttp

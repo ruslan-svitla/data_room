@@ -1,9 +1,11 @@
+import logging
+
 from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql import text
+from loguru import logger
 
 from app.api import deps
 from app.core.config import settings
+from app.db.dynamodb_session import DynamoDBSession
 
 router = APIRouter()
 
@@ -23,7 +25,7 @@ async def health_check():
 
 
 @router.get("/detailed", summary="Detailed health check")
-async def detailed_health_check(db: AsyncSession = Depends(deps.get_db)):
+async def detailed_health_check(db: DynamoDBSession = Depends(deps.get_db)):
     """
     Detailed health check that validates database connectivity.
 
@@ -31,9 +33,10 @@ async def detailed_health_check(db: AsyncSession = Depends(deps.get_db)):
     """
     # Check database connectivity
     try:
-        # Execute a simple query to check database connection
-        result = await db.execute(text("SELECT 1"))
-        db_status = "connected" if result.scalar() == 1 else "error"
+        # Check DynamoDB connectivity by attempting to list tables
+        # or access a known table to verify connection
+        tables = list(db.dynamodb.tables.all())
+        db_status = "connected" if tables else "no tables found but connected"
     except Exception as e:
         db_status = f"error: {str(e)}"
 

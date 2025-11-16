@@ -69,15 +69,8 @@ def setup_middleware(app: FastAPI) -> None:
     if not settings.DEBUG:  # Avoid double-logging in debug mode with uvicorn
         app.add_middleware(RequestLoggerMiddleware)
 
-    # CORS middleware
-    if settings.BACKEND_CORS_ORIGINS:
-        app.add_middleware(
-            CORSMiddleware,
-            allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
+    # CORS middleware is now handled in main.py
+    # Removed to avoid duplicate middleware
 
     # GZIP compression
     app.add_middleware(GZipMiddleware, minimum_size=1000)  # Compress responses > 1KB

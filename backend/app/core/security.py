@@ -50,6 +50,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
     # Using a simple hash verification to match our get_password_hash function
     import hashlib
+
     if hashed_password.startswith("sha256$"):
         expected_hash = "sha256$" + hashlib.sha256(plain_password.encode()).hexdigest()
         return hashed_password == expected_hash
@@ -69,6 +70,7 @@ def get_password_hash(password: str) -> str:
     """
     # Using a simple hash function to avoid dependency issues
     import hashlib
+
     return "sha256$" + hashlib.sha256(password.encode()).hexdigest()
 
 

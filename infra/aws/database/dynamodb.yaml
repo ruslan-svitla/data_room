@@ -1,0 +1,321 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: DynamoDB tables for Data Room
+
+Parameters:
+  Stage:
+    Type: String
+    Description: The deployment stage (dev, staging, prod)
+
+Resources:
+  # DynamoDB table for Users
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "DataRoom-Users-${Stage}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: email
+          AttributeType: S
+        - AttributeName: google_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: EmailIndex
+          KeySchema:
+            - AttributeName: email
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        - IndexName: GoogleIdIndex
+          KeySchema:
+            - AttributeName: google_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
+  # DynamoDB table for Documents
+  DocumentsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "DataRoom-Documents-${Stage}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: owner_id
+          AttributeType: S
+        - AttributeName: folder_id
+          AttributeType: S
+        - AttributeName: is_deleted
+          AttributeType: S
+        - AttributeName: is_public
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: OwnerIndex
+          KeySchema:
+            - AttributeName: owner_id
+              KeyType: HASH
+            - AttributeName: is_deleted
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: FolderIndex
+          KeySchema:
+            - AttributeName: folder_id
+              KeyType: HASH
+            - AttributeName: is_deleted
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: PublicDocumentsIndex
+          KeySchema:
+            - AttributeName: is_public
+              KeyType: HASH
+            - AttributeName: is_deleted
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  # DynamoDB table for Folders
+  FoldersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "DataRoom-Folders-${Stage}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: owner_id
+          AttributeType: S
+        - AttributeName: parent_id
+          AttributeType: S
+        - AttributeName: is_deleted
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: OwnerIndex
+          KeySchema:
+            - AttributeName: owner_id
+              KeyType: HASH
+            - AttributeName: is_deleted
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: ParentFolderIndex
+          KeySchema:
+            - AttributeName: parent_id
+              KeyType: HASH
+            - AttributeName: is_deleted
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+            
+  # DynamoDB table for Integrations
+  IntegrationsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "DataRoom-Integrations-${Stage}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: user_id
+          AttributeType: S
+        - AttributeName: provider
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: UserIndex
+          KeySchema:
+            - AttributeName: user_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        - IndexName: ProviderIndex
+          KeySchema:
+            - AttributeName: provider
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+  
+  # DynamoDB table for Document shares
+  DocumentSharesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "DataRoom-DocumentShares-${Stage}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: document_id
+          AttributeType: S
+        - AttributeName: user_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: DocumentIndex
+          KeySchema:
+            - AttributeName: document_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        - IndexName: UserSharesIndex
+          KeySchema:
+            - AttributeName: user_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+  
+  # DynamoDB table for Folder shares
+  FolderSharesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "DataRoom-FolderShares-${Stage}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: folder_id
+          AttributeType: S
+        - AttributeName: user_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: FolderIndex
+          KeySchema:
+            - AttributeName: folder_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        - IndexName: UserSharesIndex
+          KeySchema:
+            - AttributeName: user_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+  
+  # DynamoDB table for Document versions
+  DocumentVersionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "DataRoom-DocumentVersions-${Stage}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: document_id
+          AttributeType: S
+        - AttributeName: version_number
+          AttributeType: N
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: DocumentVersionsIndex
+          KeySchema:
+            - AttributeName: document_id
+              KeyType: HASH
+            - AttributeName: version_number
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+Outputs:
+  UsersTableName:
+    Description: "DynamoDB table for Users"
+    Value: !Ref UsersTable
+    Export:
+      Name: !Sub "${AWS::StackName}-UsersTableName"
+
+  UsersTableArn:
+    Description: "ARN of the DynamoDB Users table"
+    Value: !GetAtt UsersTable.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-UsersTableArn"
+
+  DocumentsTableName:
+    Description: "DynamoDB table for Documents" 
+    Value: !Ref DocumentsTable
+    Export:
+      Name: !Sub "${AWS::StackName}-DocumentsTableName"
+
+  DocumentsTableArn:
+    Description: "ARN of the DynamoDB Documents table"
+    Value: !GetAtt DocumentsTable.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-DocumentsTableArn"
+
+  FoldersTableName:
+    Description: "DynamoDB table for Folders"
+    Value: !Ref FoldersTable
+    Export:
+      Name: !Sub "${AWS::StackName}-FoldersTableName"
+
+  FoldersTableArn:
+    Description: "ARN of the DynamoDB Folders table"
+    Value: !GetAtt FoldersTable.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-FoldersTableArn"
+
+  IntegrationsTableName:
+    Description: "DynamoDB table for Integrations"
+    Value: !Ref IntegrationsTable
+    Export:
+      Name: !Sub "${AWS::StackName}-IntegrationsTableName"
+
+  IntegrationsTableArn:
+    Description: "ARN of the DynamoDB Integrations table"
+    Value: !GetAtt IntegrationsTable.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-IntegrationsTableArn"
+
+  DocumentSharesTableName:
+    Description: "DynamoDB table for Document Shares"
+    Value: !Ref DocumentSharesTable
+    Export:
+      Name: !Sub "${AWS::StackName}-DocumentSharesTableName"
+
+  DocumentSharesTableArn:
+    Description: "ARN of the DynamoDB Document Shares table"
+    Value: !GetAtt DocumentSharesTable.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-DocumentSharesTableArn"
+
+  FolderSharesTableName:
+    Description: "DynamoDB table for Folder Shares"
+    Value: !Ref FolderSharesTable
+    Export:
+      Name: !Sub "${AWS::StackName}-FolderSharesTableName"
+
+  FolderSharesTableArn:
+    Description: "ARN of the DynamoDB Folder Shares table"
+    Value: !GetAtt FolderSharesTable.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-FolderSharesTableArn"
+
+  DocumentVersionsTableName:
+    Description: "DynamoDB table for Document Versions"
+    Value: !Ref DocumentVersionsTable
+    Export:
+      Name: !Sub "${AWS::StackName}-DocumentVersionsTableName"
+
+  DocumentVersionsTableArn:
+    Description: "ARN of the DynamoDB Document Versions table"
+    Value: !GetAtt DocumentVersionsTable.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-DocumentVersionsTableArn"

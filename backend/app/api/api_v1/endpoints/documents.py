@@ -62,6 +62,19 @@ async def create_document(
             detail=f"File size exceeds maximum limit of {settings.MAX_CONTENT_LENGTH} bytes",
         )
 
+    # Check import limitations
+    doc_count, total_storage = await document_service.get_total_imported_documents_and_storage(current_user.id)
+    if doc_count >= settings.MAX_DOCUMENT_IMPORT_COUNT:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Document import limit exceeded: max {settings.MAX_DOCUMENT_IMPORT_COUNT} documents allowed."
+        )
+    if total_storage + file_size > settings.MAX_DOCUMENT_IMPORT_STORAGE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"Storage limit exceeded: max {settings.MAX_DOCUMENT_IMPORT_STORAGE_MB} MB allowed."
+        )
+
     document = await document_service.create_with_file(
         obj_in=document_in,
         file=file,

@@ -17,7 +17,6 @@ import {
     CircularProgress,
     Alert,
     Chip, 
-    SvgIconTypeMap,
     Dialog,
     DialogActions,
     DialogContent,
@@ -69,7 +68,7 @@ const DocumentsPage = () => {
   
   // Filter documents based on search term
   const filteredDocuments = documents
-    ? documents.filter((doc) =>
+    ? documents.filter((doc: Document) =>
         doc.name.toLowerCase().includes(searchTerm.toLowerCase())
       )
     : [];
@@ -228,7 +227,7 @@ const DocumentsPage = () => {
           variant="outlined"
           placeholder="Search documents..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -365,8 +364,18 @@ const DocumentsPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Import limitations note for users */}
+      <Box sx={{ mt: 4, mb: 2, textAlign: 'center' }}>
+        <Typography variant="body2" color="textSecondary">
+          <strong>Note:</strong> For cost-saving and reliability, there are limits on document imports.<br />
+          You can import up to <b>99 documents</b> and use up to <b>500 MB</b> of total storage.<br />
+          If you reach these limits, please contact support for options.
+        </Typography>
+      </Box>
     </Box>
   );
 };
 
 export default DocumentsPage;
+

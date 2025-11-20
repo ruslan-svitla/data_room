@@ -96,6 +96,11 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     LOG_DIR: str | None = None  # Set to a directory path to enable file logging
 
+    # Document import limitations
+    MAX_DOCUMENT_IMPORT_COUNT: int = 99  # Less than 100
+    MAX_DOCUMENT_IMPORT_STORAGE_MB: int = 500  # 500 MB
+    MAX_DOCUMENT_IMPORT_STORAGE_BYTES: int = 500 * 1024 * 1024
+
     class Config:
         env_file = ".env"
         case_sensitive = True

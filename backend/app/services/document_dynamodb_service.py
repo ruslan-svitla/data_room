@@ -442,6 +442,17 @@ class DocumentDynamoDBService(
         share = await self.get_share(document_id=document_id, user_id=user_id)
         return share is not None and share.can_delete
 
+    async def get_total_imported_documents_and_storage(
+        self, owner_id: str
+    ) -> tuple[int, int]:
+        """
+        Returns (count, total_storage_bytes) for all non-deleted documents owned by user.
+        """
+        docs = await self.get_multi_by_owner(owner_id=owner_id, skip=0, limit=1000)
+        count = len(docs)
+        total_storage = sum(doc.file_size for doc in docs if not doc.is_deleted)
+        return count, total_storage
+
 
 class DocumentVersionDynamoDBService(DynamoDBService[DocumentVersion, dict, dict]):
     """Service for document version operations using DynamoDB"""
